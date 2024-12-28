@@ -7,7 +7,14 @@ builder.Services.AddControllersWithViews();
 // Register services
 builder.Services.AddSingleton<GoogleApiService>();
 builder.Services.AddSingleton<SeoService>();
+// Register services
+builder.Services.AddControllersWithViews();
 
+// Register HttpClient
+builder.Services.AddHttpClient();
+
+// Register the GoogleMapsService
+builder.Services.AddScoped<GoogleMapsService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

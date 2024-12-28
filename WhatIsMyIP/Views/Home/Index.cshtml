@@ -1,8 +1,6 @@
 ﻿<div class="container mt-5">
-    <!-- Display Title -->
     <h2 class="text-center">My Live Location</h2>
 
-    <!-- Display Coordinates and Address in Cards -->
     <div class="row mt-4">
         <div class="col-md-6 text-center">
             <div class="card border-primary mb-3">
@@ -10,97 +8,74 @@
                     <h5>What are my coordinates?</h5>
                 </div>
                 <div class="card-body">
-                    <p id="coordinates" class="card-text">My location coordinates are:</p>
+                    <p id="coordinates" class="card-text">Fetching coordinates...</p>
                 </div>
             </div>
         </div>
-
         <div class="col-md-6 text-center">
             <div class="card border-success mb-3">
                 <div class="card-header bg-success text-white">
                     <h5>What is my location?</h5>
                 </div>
                 <div class="card-body">
-                    <p id="address" class="card-text">My location address is:</p>
+                    <p id="address" class="card-text">Fetching address...</p>
                 </div>
             </div>
         </div>
     </div>
-
-    <!-- Map Display -->
-    <div id="map" style="height: 500px; border: 1px solid #ccc;" class="rounded mt-4"></div>
 </div>
 
+<div id="map" style="height: 500px; border: 1px solid #ccc;" class="rounded mt-4"></div>
+
 <script>
-      let map;
-    let geocoder;
+    let map;
 
     function initMap() {
-        // Initialize Google Maps
         map = new google.maps.Map(document.getElementById("map"), {
             zoom: 15,
+            center: { lat: 28.5080529, lng: 77.3795674 } // Default center
         });
-
-        // Initialize Geocoder for reverse geocoding
-        geocoder = new google.maps.Geocoder();
-
-        // Create InfoWindow
-        const infoWindow = new google.maps.InfoWindow();
-
-        // Get User's Location using Geolocation API
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function (position) {
-                    const userLocation = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                    };
-
-                    // Center the map to user's location
-                    map.setCenter(userLocation);
-
-                    // Add Marker for user's location
-                    const marker = new google.maps.Marker({
-                        position: userLocation,
-                        map: map,
-                        animation: google.maps.Animation.BOUNCE,
-                    });
-
-                    // Reverse Geocode to get address
-                    geocoder.geocode({ location: userLocation }, function (results, status) {
-                        if (status === "OK" && results[0]) {
-                            const address = results[0].formatted_address;
-
-                             // Display Coordinates
-                    document.getElementById("coordinates").innerText =
-                        `Latitude: ${userLocation.lat}\nLongitude: ${userLocation.lng}`;
-                            document.getElementById("address").innerText =
-                                `My location address is:\n${address}`;
-
-                            // Add Hover Event to Marker
-                            google.maps.event.addListener(marker, "mouseover", function () {
-                                infoWindow.setContent(`<strong>${address}</strong>`);
-                                infoWindow.open(map, marker);
-                            });
-
-                            // Close InfoWindow on Mouseout
-                            google.maps.event.addListener(marker, "mouseout", function () {
-                                infoWindow.close();
-                            });
-                        } else {
-                            document.getElementById("address").innerText = "Unable to fetch address.";
-                        }
-                    });
-                },
-                function (error) {
-                    alert("Geolocation failed: " + error.message);
-                }
-            );
-        } else {
-            alert("Geolocation is not supported by this browser.");
-        }
     }
 
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+            const coordinates = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            };
+
+            // Send the coordinates to the server
+            const response = await fetch('/api/location/get-address', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(coordinates)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log(data);
+                document.getElementById("coordinates").innerText =
+                    `Latitude: ${coordinates.latitude}\nLongitude: ${coordinates.longitude}`;
+                document.getElementById("address").innerText =
+                    `My location address is:\n${data.Address}`;
+
+                // Update the map center and add a marker
+                const userLocation = { lat: coordinates.latitude, lng: coordinates.longitude };
+                map.setCenter(userLocation);
+
+                new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    animation: google.maps.Animation.BOUNCE
+                });
+            } else {
+                alert("Failed to fetch location address.");
+            }
+        });
+    } else {
+        alert("Geolocation is not supported by your browser.");
+    }
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBEIqDhk4kpJH8s0RmyaZ7jW1wmDr00bdU&callback=initMap" async defer></script>
